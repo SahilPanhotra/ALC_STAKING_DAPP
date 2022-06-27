@@ -10,6 +10,7 @@ contract Staker {
 
   mapping(address => uint256) public balances;
   mapping(address => uint256) public depositTimestamps;
+  mapping(address => uint256) public depositBlockNumber;
 
   uint256 public constant rewardRatePerBlock = 0.1 ether;
   uint256 public withdrawalDeadline = block.timestamp + 120 seconds;
@@ -65,6 +66,7 @@ contract Staker {
   function stake() public payable withdrawalDeadlineReached(false) claimDeadlineReached(false){
     balances[msg.sender] = balances[msg.sender] + msg.value;
     depositTimestamps[msg.sender] = block.timestamp;
+    depositBlockNumber[msg.sender] = block.number;
     emit Stake(msg.sender, msg.value);
   }
 
@@ -75,7 +77,7 @@ contract Staker {
   function withdraw() public withdrawalDeadlineReached(true) claimDeadlineReached(false) notCompleted{
     require(balances[msg.sender] > 0, "You have no balance to withdraw!");
     uint256 individualBalance = balances[msg.sender];
-    uint256 indBalanceRewards = individualBalance + ((block.timestamp-depositTimestamps[msg.sender])*rewardRatePerBlock);
+    uint256 indBalanceRewards = individualBalance + rewardsAvailableForWithdraw(msg.sender);
     balances[msg.sender] = 0;
 
     // Transfer all ETH via call! (not transfer) cc: https://solidity-by-example.org/sending-ether
@@ -101,6 +103,22 @@ contract Staker {
     } else {
       return (withdrawalDeadline - block.timestamp);
     }
+  }
+  function rewardsAvailableForWithdraw(address checkAddress) public view returns (uint) {
+    uint256 principal = balances[checkAddress];
+    uint256 principal100 = principal*100;
+    uint256 principalDivide=(principal100 / 1e18);
+  
+
+    uint256 age = block.number - depositBlockNumber[checkAddress];
+    uint256 interest = principalDivide ** age;
+    uint256 interestMul = interest * 1e18;
+    uint256 actualInterest = interestMul/(100*age);
+
+    return actualInterest;
+  }
+  function backdateTenBlocks(address addressToBackdate) public {
+    depositBlockNumber[addressToBackdate] -= 10;
   }
 
   /*
