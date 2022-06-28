@@ -589,13 +589,13 @@ function App(props) {
               onChange={handleInputChange}
               name="deposit"
               placeholder="0.0000 ETH"
-              value={inputValue.deposit}
+              value={inputValue.stakeEth}
             />
               <Button
                 type={balanceStaked ? "success" : "primary"}
                 onClick={(e) => {
                   e.preventDefault();
-                  tx(writeContracts.Staker.stake({ value: ethers.utils.parseEther(inputValue.deposit) }));
+                  tx(writeContracts.Staker.stake({ value: ethers.utils.parseEther(inputValue.stakeEth) }));
                 }}
               >
                 🥩 Stake Ether!
