@@ -173,6 +173,7 @@ function App(props) {
 
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
+  const [inputValue, setInputValue] = useState({stakeEth: ""});
 
   const logoutOfWeb3Modal = async () => {
     await web3Modal.clearCachedProvider();
@@ -483,6 +484,10 @@ function App(props) {
       </div>
     );
   }
+  const handleInputChange = (e) => {
+    setInputValue(prevFormData => ({ ...prevFormData, [e.target.name]: e.target.value }));
+  }
+  
 
   return (
     <div className="App">
@@ -578,13 +583,22 @@ function App(props) {
             </div>
 
             <div style={{ padding: 8 }}>
+            <input
+              type="text"
+              className="input-style"
+              onChange={handleInputChange}
+              name="deposit"
+              placeholder="0.0000 ETH"
+              value={inputValue.deposit}
+            />
               <Button
                 type={balanceStaked ? "success" : "primary"}
-                onClick={() => {
-                  tx(writeContracts.Staker.stake({ value: ethers.utils.parseEther("0.5") }));
+                onClick={(e) => {
+                  e.preventDefault();
+                  tx(writeContracts.Staker.stake({ value: ethers.utils.parseEther(inputValue.deposit) }));
                 }}
               >
-                🥩 Stake 0.5 ether!
+                🥩 Stake Ether!
               </Button>
             </div>
 
