@@ -11,11 +11,11 @@ contract Staker {
   mapping(address => uint256) public balances;
   mapping(address => uint256) public depositTimestamps;
   mapping(address => uint256) public depositBlockNumber;
-
-  uint256 public constant rewardRatePerBlock = 0.1 ether;
   uint256 public withdrawalDeadline = block.timestamp + 120 seconds;
   uint256 public claimDeadline = block.timestamp + 240 seconds;
   uint256 public currentBlock = 0;
+  address public owner; 
+  address whitelisted;
 
   // Events
   event Stake(address indexed sender, uint256 amount);
@@ -53,13 +53,24 @@ contract Staker {
   Requires that contract only be completed once!
   */
   modifier notCompleted() {
-    bool completed = exampleExternalContract.completed();
-    require(!completed, "Stake already completed!");
+    bool _completed = exampleExternalContract.completed();
+    require(!_completed, "Stake already completed!");
+    _;
+  }
+  modifier isCompleted() {
+    bool _completed = exampleExternalContract.completed();
+    require(_completed, "not Complete");
+    _;
+  }
+  modifier OnlyWhitelisted {
+    require(whitelisted==msg.sender,"You are not authorized");
     _;
   }
 
   constructor(address exampleExternalContractAddress){
       exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
+      whitelisted=0xD1052304904e5243135F3Ca6D52553e977a20000;
+
   }
 
   // Stake function for a user to stake ETH in our contract
@@ -91,17 +102,33 @@ contract Staker {
   */
   function execute() public claimDeadlineReached(true) notCompleted {
     uint256 contractBalance = address(this).balance;
-    exampleExternalContract.complete{value: address(this).balance}();
+    exampleExternalContract.complete{value: contractBalance}();
+    balances[msg.sender]=0;
   }
+  function resetContract() public OnlyWhitelisted isCompleted  {
+  withdrawalDeadline = block.timestamp + 120 seconds;
+  claimDeadline = block.timestamp + 240 seconds;
+  exampleExternalContract.changeCompleted();
+}
 
   /*
   READ-ONLY function to calculate time remaining before the minimum staking period has passed
   */
-  function withdrawalTimeLeft() public view returns (uint256 withdrawalTimeLeft) {
+  function withdrawalTimeLeft() public view returns (uint256 _withdrawalTimeLeft) {
     if( block.timestamp >= withdrawalDeadline) {
       return (0);
     } else {
       return (withdrawalDeadline - block.timestamp);
+    }
+  }
+  /*
+  READ-ONLY function to calculate time remaining before the minimum staking period has passed
+  */
+  function claimPeriodLeft() public view returns (uint256 _claimPeriodLeft) {
+    if( block.timestamp >= claimDeadline) {
+      return (0);
+    } else {
+      return (claimDeadline - block.timestamp);
     }
   }
   function rewardsAvailableForWithdraw(address checkAddress) public view returns (uint) {
@@ -119,17 +146,6 @@ contract Staker {
   }
   function backdateTenBlocks(address addressToBackdate) public {
     depositBlockNumber[addressToBackdate] -= 10;
-  }
-
-  /*
-  READ-ONLY function to calculate time remaining before the minimum staking period has passed
-  */
-  function claimPeriodLeft() public view returns (uint256 claimPeriodLeft) {
-    if( block.timestamp >= claimDeadline) {
-      return (0);
-    } else {
-      return (claimDeadline - block.timestamp);
-    }
   }
 
   /*
